@@ -7,11 +7,14 @@ import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.mapper.UserMapper;
 import com.paul.project.model.entity.User;
+import com.paul.project.model.vo.LoginUserVO;
 import com.paul.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.collection.CollUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;

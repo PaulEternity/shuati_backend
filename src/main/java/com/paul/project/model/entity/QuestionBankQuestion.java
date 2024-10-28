@@ -18,7 +18,7 @@ public class QuestionBankQuestion implements Serializable {
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)//采用雪花算法
     private Long id;
 
     /**

@@ -38,6 +38,11 @@ public class QuestionVO implements Serializable {
     private Long userId;
 
     /**
+     * 推荐答案
+     */
+    private String answer;
+
+    /**
      * 创建时间
      */
     private Date createTime;

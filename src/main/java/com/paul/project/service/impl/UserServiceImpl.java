@@ -1,23 +1,30 @@
 package com.paul.project.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.paul.project.common.ErrorCode;
+import com.paul.project.constant.CommonConstant;
 import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.mapper.UserMapper;
+import com.paul.project.model.dto.user.UserQueryRequest;
 import com.paul.project.model.entity.User;
+import com.paul.project.model.enums.UserRoleEnum;
 import com.paul.project.model.vo.LoginUserVO;
+import com.paul.project.model.vo.UserVO;
 import com.paul.project.service.UserService;
+import com.paul.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
-import cn.dev33.satoken.stp.StpUtil;
-import cn.hutool.core.collection.CollUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -142,6 +149,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return user != null && UserConstant.ADMIN_ROLE.equals(user.getUserRole());
     }
 
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
     /**
      * 用户注销
      *
@@ -156,6 +168,60 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
         return true;
     }
+
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
+        if(user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        LoginUserVO loginUserVO = new LoginUserVO();
+        BeanUtils.copyProperties(user,loginUserVO);
+        return loginUserVO;
+    }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        if(user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVO(List<User> userList) {
+        if(CollUtil.isEmpty(userList)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if(userQueryRequest == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+//        String unionId = userQueryRequest.getUnionId();
+//        String mpOpenId = userQueryRequest.getMpOpenId();
+        String userName = userQueryRequest.getUserName();
+//        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(id != null, "id", id);
+//        queryWrapper.eq(StringUtils.isNotBlank(unionId), "unionId", unionId);
+//        queryWrapper.eq(StringUtils.isNotBlank(mpOpenId), "mpOpenId", mpOpenId);
+        queryWrapper.eq(StringUtils.isNotBlank(userRole), "userRole", userRole);
+//        queryWrapper.like(StringUtils.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+                sortField);
+        return queryWrapper;
+    }
+
 
 }
 

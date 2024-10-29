@@ -78,7 +78,7 @@ public interface UserService extends IService<User> {
      * @param user
      * @return
      */
-//    boolean isAdmin(User user);
+    boolean isAdmin(User user);
 
     /**
      * 用户注销
@@ -93,7 +93,7 @@ public interface UserService extends IService<User> {
      *
      * @return
      */
-//    LoginUserVO getLoginUserVO(User user);
+    LoginUserVO getLoginUserVO(User user);
 
     /**
      * 获取脱敏的用户信息
@@ -101,7 +101,7 @@ public interface UserService extends IService<User> {
      * @param user
      * @return
      */
-//    UserVO getUserVO(User user);
+    UserVO getUserVO(User user);
 
     /**
      * 获取脱敏的用户信息
@@ -109,7 +109,7 @@ public interface UserService extends IService<User> {
      * @param userList
      * @return
      */
-//    List<UserVO> getUserVO(List<User> userList);
+    List<UserVO> getUserVO(List<User> userList);
 
     /**
      * 获取查询条件
@@ -117,7 +117,7 @@ public interface UserService extends IService<User> {
      * @param userQueryRequest
      * @return
      */
-//    QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+    QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
 
     /**
      * 添加用户签到记录

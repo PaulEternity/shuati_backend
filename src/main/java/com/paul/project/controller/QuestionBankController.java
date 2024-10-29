@@ -226,9 +226,9 @@ public class QuestionBankController {
         QuestionBank oldQuestionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(oldQuestionBank == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
-//        if (!oldQuestionBank.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-//            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-//        }
+        if (!oldQuestionBank.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
         // 操作数据库
         boolean result = questionBankService.updateById(questionBank);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

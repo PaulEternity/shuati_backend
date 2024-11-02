@@ -1,5 +1,6 @@
 package com.paul.project.model.vo;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.paul.project.model.entity.QuestionBank;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -36,6 +37,11 @@ public class QuestionBankVO implements Serializable {
     private Long userId;
 
     /**
+     * 创建用户信息
+     */
+    private UserVO user;
+
+    /**
      * 创建时间
      */
     private Date createTime;
@@ -54,6 +60,11 @@ public class QuestionBankVO implements Serializable {
      * 图片
      */
     private String picture;
+
+    /**
+     * 题库里的题目列表（分页）
+     */
+    Page<QuestionVO> questionPage;
 
 
     /**

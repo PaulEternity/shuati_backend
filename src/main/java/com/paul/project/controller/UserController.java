@@ -235,5 +235,23 @@ public class UserController {
         return ResultUtils.success(userVOPage);
     }
 
+    /**
+     * 添加用户签到记录
+     */
+    @PostMapping("add/sign_in")
+    public BaseResponse<Boolean> addUserSignIn(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR,"请先登录");
+        }
+        Long userId = loginUser.getId();
+        boolean hasSignIn = userService.addUserSignIn(userId);
+        return ResultUtils.success(hasSignIn);
+
+
+    }
+
+
+
     // endregion
 }

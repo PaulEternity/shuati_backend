@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.paul.project.common.ErrorCode;
 import com.paul.project.constant.CommonConstant;
+import com.paul.project.constant.RedisConstant;
 import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.mapper.UserMapper;
@@ -17,12 +18,15 @@ import com.paul.project.service.UserService;
 import com.paul.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RBitSet;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +43,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private RedissonClient redissonClient;
 
     /**
      * 盐值，混淆密码
@@ -220,6 +227,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
+    }
+
+    @Override
+    public boolean addUserSignIn(long userId) {
+        LocalDate date = LocalDate.now();
+        String key = RedisConstant.getUserSignInRedisKey(date.getYear(),userId);
+        RBitSet signInBitSet = redissonClient.getBitSet(key);
+        //获取当天是一年中的第几天，从1开始计数
+        int offset= date.getDayOfYear();
+        if(!signInBitSet.get(offset)){
+            signInBitSet.set(offset,true);//把当前位置设置签到
+        }
+        return true;
     }
 
 

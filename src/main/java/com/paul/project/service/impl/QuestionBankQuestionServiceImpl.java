@@ -9,11 +9,15 @@ import com.paul.project.constant.CommonConstant;
 import com.paul.project.exception.ThrowUtils;
 import com.paul.project.mapper.QuestionBankQuestionMapper;
 import com.paul.project.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
+import com.paul.project.model.entity.Question;
+import com.paul.project.model.entity.QuestionBank;
 import com.paul.project.model.entity.QuestionBankQuestion;
 import com.paul.project.model.entity.User;
 import com.paul.project.model.vo.QuestionBankQuestionVO;
 import com.paul.project.model.vo.UserVO;
 import com.paul.project.service.QuestionBankQuestionService;
+import com.paul.project.service.QuestionBankService;
+import com.paul.project.service.QuestionService;
 import com.paul.project.service.UserService;
 import com.paul.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +44,12 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
     @Resource
     private UserService userService;
 
+    @Resource
+    private QuestionBankService questionBankService;
+
+    @Resource
+    private QuestionService questionService;
+
     /**
      * 校验数据
      *
@@ -49,18 +59,16 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
     @Override
     public void validQuestionBankQuestion(QuestionBankQuestion questionBankQuestion, boolean add) {
         ThrowUtils.throwIf(questionBankQuestion == null, ErrorCode.PARAMS_ERROR);
-//// todo 从对象中取值
-//String title = questionBankQuestion.getTitle();
-//// 创建数据时，参数不能为空
-//if (add) {
-//// todo 补充校验规则
-//ThrowUtils.throwIf(StringUtils.isBlank(title), ErrorCode.PARAMS_ERROR);
-//}
-//// 修改数据时，有参数则校验
-//// todo 补充校验规则
-//if (StringUtils.isNotBlank(title)) {
-//ThrowUtils.throwIf(title.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
-//}
+        Long questionId = questionBankQuestion.getQuestionId();
+        if (questionId != null) {
+            Question question = questionService.getById(questionId);
+            ThrowUtils.throwIf(question == null, ErrorCode.PARAMS_ERROR, "题目不存在");
+        }
+        Long questionBankId = questionBankQuestion.getQuestionBankId();
+        if (questionBankId != null) {
+            QuestionBank questionBank = questionBankService.getById(questionBankId);
+            ThrowUtils.throwIf(questionBank == null, ErrorCode.PARAMS_ERROR, "题库不存在");
+        }
     }
 
     /**
@@ -101,7 +109,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
 
     /**
      * 获取题目题库关联封装
-     *
      * @param questionBankQuestion
      * @param request
      * @return
@@ -110,7 +117,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
     public QuestionBankQuestionVO getQuestionBankQuestionVO(QuestionBankQuestion questionBankQuestion, HttpServletRequest request) {
         // 对象转封装类
         QuestionBankQuestionVO questionBankQuestionVO = QuestionBankQuestionVO.objToVo(questionBankQuestion);
-
         // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
         // 1. 关联查询用户信息
@@ -122,7 +128,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
         UserVO userVO = userService.getUserVO(user);
         questionBankQuestionVO.setUser(userVO);
         // endregion
-
         return questionBankQuestionVO;
     }
 
@@ -134,8 +139,7 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
      * @return
      */
     @Override
-    public Page
-            <QuestionBankQuestionVO> getQuestionBankQuestionVOPage(Page<QuestionBankQuestion> questionBankQuestionPage, HttpServletRequest
+    public Page<QuestionBankQuestionVO> getQuestionBankQuestionVOPage(Page<QuestionBankQuestion> questionBankQuestionPage, HttpServletRequest
             request) {
         List<QuestionBankQuestion> questionBankQuestionList = questionBankQuestionPage.getRecords();
         Page<QuestionBankQuestionVO> questionBankQuestionVOPage = new Page<>(questionBankQuestionPage.getCurrent(), questionBankQuestionPage.getSize(), questionBankQuestionPage.getTotal());

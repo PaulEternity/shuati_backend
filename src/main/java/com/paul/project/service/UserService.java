@@ -124,7 +124,7 @@ public interface UserService extends IService<User> {
      * @param userId 用户 id
      * @return 当前用户是否已签到成功
      */
-//    boolean addUserSignIn(long userId);
+    boolean addUserSignIn(long userId);
 
     /**
      * 获取用户某个年份的签到记录

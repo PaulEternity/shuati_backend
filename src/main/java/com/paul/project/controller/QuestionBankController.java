@@ -10,14 +10,18 @@ import com.paul.project.common.ResultUtils;
 import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.exception.ThrowUtils;
+import com.paul.project.model.dto.question.QuestionQueryRequest;
 import com.paul.project.model.dto.questionBank.QuestionBankAddRequest;
 import com.paul.project.model.dto.questionBank.QuestionBankEditRequest;
 import com.paul.project.model.dto.questionBank.QuestionBankQueryRequest;
 import com.paul.project.model.dto.questionBank.QuestionBankUpdateRequest;
+import com.paul.project.model.entity.Question;
 import com.paul.project.model.entity.QuestionBank;
 import com.paul.project.model.entity.User;
 import com.paul.project.model.vo.QuestionBankVO;
+import com.paul.project.model.vo.QuestionVO;
 import com.paul.project.service.QuestionBankService;
+import com.paul.project.service.QuestionService;
 import com.paul.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -41,6 +45,9 @@ public class QuestionBankController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private QuestionService questionService;
 
     // region 增删改查
 
@@ -129,16 +136,26 @@ public class QuestionBankController {
     /**
      * 根据 id 获取题库（封装类）
      *
-     * @param id
+     * @param questionBankQueryRequest
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionBankVO> getQuestionBankVOById(long id, HttpServletRequest request) {
+    public BaseResponse<QuestionBankVO> getQuestionBankVOById(QuestionBankQueryRequest questionBankQueryRequest,  HttpServletRequest request) {
+        ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long id = questionBankQueryRequest.getId();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
-        // 获取封装类
+        QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank,request);
+        boolean needQueryQuestionList = questionBankQueryRequest.isNeedQueryQuestionList();
+        if(needQueryQuestionList){
+            QuestionQueryRequest questionQueryRequest = new QuestionQueryRequest();
+            questionQueryRequest.setQuestionBankId(id);
+            Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+            Page<QuestionVO> questionVOPage = questionService.getQuestionVOPage(questionPage,request);
+            questionBankVO.setQuestionPage(questionVOPage);
+        }
         return ResultUtils.success(questionBankService.getQuestionBankVO(questionBank, request));
     }
 

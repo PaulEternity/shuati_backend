@@ -9,7 +9,9 @@ import com.paul.project.model.vo.UserVO;
 
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户服务
@@ -133,5 +135,7 @@ public interface UserService extends IService<User> {
      * @param year   年份（为空表示当前年份）
      * @return 签到记录映射
      */
-//    List<Integer> getUserSignInRecord(long userId, Integer year);
+    List<Integer> getUserSignInRecord(long userId, Integer year);
+
+//    Map<LocalDate,Boolean> getUserSignInRecord(long userId,Integer year);
 }

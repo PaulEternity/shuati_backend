@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -242,7 +244,7 @@ public class UserController {
     public BaseResponse<Boolean> addUserSignIn(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         if (loginUser == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR,"请先登录");
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
         }
         Long userId = loginUser.getId();
         boolean hasSignIn = userService.addUserSignIn(userId);
@@ -251,6 +253,15 @@ public class UserController {
 
     }
 
+    @GetMapping("/get/sign_in")
+    public BaseResponse<List<Integer>> getUserSignIn(Integer year, HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        List<Integer> userSignInRecord = userService.getUserSignInRecord(user.getId(), year);
+        return ResultUtils.success(userSignInRecord);
+    }
 
 
     // endregion

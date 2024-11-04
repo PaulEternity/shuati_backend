@@ -27,7 +27,8 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
-import java.util.List;
+import java.time.Year;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -178,27 +179,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public LoginUserVO getLoginUserVO(User user) {
-        if(user == null){
+        if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
         LoginUserVO loginUserVO = new LoginUserVO();
-        BeanUtils.copyProperties(user,loginUserVO);
+        BeanUtils.copyProperties(user, loginUserVO);
         return loginUserVO;
     }
 
     @Override
     public UserVO getUserVO(User user) {
-        if(user == null){
+        if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
         UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user,userVO);
+        BeanUtils.copyProperties(user, userVO);
         return userVO;
     }
 
     @Override
     public List<UserVO> getUserVO(List<User> userList) {
-        if(CollUtil.isEmpty(userList)){
+        if (CollUtil.isEmpty(userList)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
         return userList.stream().map(this::getUserVO).collect(Collectors.toList());
@@ -206,7 +207,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
-        if(userQueryRequest == null){
+        if (userQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
         Long id = userQueryRequest.getId();
@@ -232,14 +233,47 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean addUserSignIn(long userId) {
         LocalDate date = LocalDate.now();
-        String key = RedisConstant.getUserSignInRedisKey(date.getYear(),userId);
+        String key = RedisConstant.getUserSignInRedisKey(date.getYear(), userId);
         RBitSet signInBitSet = redissonClient.getBitSet(key);
         //获取当天是一年中的第几天，从1开始计数
-        int offset= date.getDayOfYear();
-        if(!signInBitSet.get(offset)){
-            signInBitSet.set(offset,true);//把当前位置设置签到
+        int offset = date.getDayOfYear();
+        if (!signInBitSet.get(offset)) {
+            signInBitSet.set(offset, true);//把当前位置设置签到
         }
         return true;
+    }
+
+    @Override
+    public List<Integer> getUserSignInRecord(long userId, Integer year) {
+        if (year == null) {
+            LocalDate date = LocalDate.now();
+            year = date.getYear();
+        }
+        String key = RedisConstant.getUserSignInRedisKey(year, userId);
+        //获取redis的bitmap
+        RBitSet signInBitSet = redissonClient.getBitSet(key);
+        //加载bitset到内存中，减少后续发送的请求
+        BitSet bitSet = signInBitSet.asBitSet();
+        //构造返回结果
+        List<Integer> dayList = new ArrayList<>();
+        int index = bitSet.nextSetBit(0);
+        while(index >= 0){
+            dayList.add(index);
+            index = bitSet.nextSetBit(index + 1);
+        }
+//        //获取当前年份的总天数
+//        int totalDays = Year.of(year).length();
+//        //依次获取每一天的签到状态
+//        for (int dayOfYear = 1; dayOfYear <= totalDays; dayOfYear++) {
+//            //key：当前日期
+//            LocalDate currentDay = LocalDate.ofYearDay(year, dayOfYear);
+//            //value：当前是否有刷题
+//            boolean hasRecord = bitSet.get(dayOfYear);
+//            if(hasRecord) {
+//                dayList.add(dayOfYear);
+//            }
+//        }
+        return dayList;
     }
 
 

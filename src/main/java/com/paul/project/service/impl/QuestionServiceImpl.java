@@ -14,6 +14,7 @@ import com.paul.project.constant.CommonConstant;
 import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.ThrowUtils;
 import com.paul.project.mapper.QuestionMapper;
+import com.paul.project.model.dto.question.QuestionEsDTO;
 import com.paul.project.model.dto.question.QuestionQueryRequest;
 import com.paul.project.model.entity.Question;
 import com.paul.project.model.entity.QuestionBankQuestion;
@@ -27,12 +28,26 @@ import com.paul.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.lucene.search.SortField;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +67,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Resource
     private QuestionBankQuestionService questionBankQuestionService;
+
+    @Resource
+    private ElasticsearchTemplate elasticsearchTemplate;
 
     /**
      * 校验数据
@@ -220,6 +238,80 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             }
         }
         return this.page(new Page<>(current, size), queryWrapper);
+    }
+
+    /**
+     * ES 查询题目
+     * @param questionQueryRequest
+     * @return
+     */
+    @Override
+    public Page<Question> searchFromEs(QuestionQueryRequest questionQueryRequest) {
+        Long id = questionQueryRequest.getUserId();
+        Long notId = questionQueryRequest.getNotId();
+        Long questionBankId = questionQueryRequest.getQuestionBankId();
+        List<String> tagList = questionQueryRequest.getTags();
+        Long userId = questionQueryRequest.getUserId();
+        String text = questionQueryRequest.getSearchText();
+        int current = questionQueryRequest.getCurrent() - 1;
+        int pageSize = questionQueryRequest.getPageSize();
+        String sortField = questionQueryRequest.getSortField();
+        String sortOrder = questionQueryRequest.getSortOrder();
+        //布尔查询
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.filter(QueryBuilders.termQuery("isDeleted",0));
+        if(id != null){
+            boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
+        }
+        if(notId != null){
+            boolQueryBuilder.filter(QueryBuilders.termQuery("notId", notId));
+        }
+        if(userId != null){
+            boolQueryBuilder.filter(QueryBuilders.termQuery("userId", userId));
+        }
+        if(questionBankId != null){
+            boolQueryBuilder.filter(QueryBuilders.termQuery("questionBankId", questionBankId));
+        }
+
+        if(CollUtil.isNotEmpty(tagList)){
+            for (String tag : tagList) {
+                boolQueryBuilder.filter(QueryBuilders.termQuery("tags", tag));
+            }
+        }
+
+        if(StringUtils.isNotBlank(text)){
+            boolQueryBuilder.should(QueryBuilders.matchQuery("title",text));
+            boolQueryBuilder.should(QueryBuilders.matchQuery("content",text));
+            boolQueryBuilder.should(QueryBuilders.matchQuery("answer",text));
+            boolQueryBuilder.minimumShouldMatch(1);//至少满足一项
+        }
+
+        SortBuilder<?> sortedBuilder = SortBuilders.scoreSort();
+        if(StringUtils.isNotBlank(sortField)){
+            sortedBuilder = SortBuilders.fieldSort(sortField);
+            sortedBuilder.order(CommonConstant.SORT_ORDER_ASC.equals(sortOrder) ? SortOrder.ASC : SortOrder.DESC);
+        }
+
+        //分页
+        PageRequest pageRequest = PageRequest.of(current, pageSize);
+
+        NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
+                .withQuery(boolQueryBuilder)
+                .withPageable(pageRequest)
+                .withSorts(sortedBuilder)
+                .build();
+        SearchHits<QuestionEsDTO> searchHits = elasticsearchTemplate.search(searchQuery, QuestionEsDTO.class);
+        Page<Question> page = new Page<>();
+        page.setTotal(searchHits.getTotalHits());
+        List<Question> resourceList = new ArrayList<>();
+        if(searchHits.hasSearchHits()){
+            List<SearchHit<QuestionEsDTO>> searchHitList = searchHits.getSearchHits();
+            for(SearchHit<QuestionEsDTO> searchHit : searchHitList){
+                resourceList.add(QuestionEsDTO.dtoToObj(searchHit.getContent()));
+            }
+        }
+        page.setRecords(resourceList);
+        return page;
     }
 
 }

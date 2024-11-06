@@ -1,7 +1,9 @@
 package com.paul.project.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.paul.project.common.ErrorCode;
@@ -51,6 +53,7 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
 
     @Resource
     private QuestionBankService questionBankService;
+
     /**
      * 校验数据
      *
@@ -110,6 +113,7 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
 
     /**
      * 获取题目题库关联封装
+     *
      * @param questionBankQuestion
      * @param request
      * @return
@@ -172,6 +176,59 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
 
         questionBankQuestionVOPage.setRecords(questionBankQuestionVOList);
         return questionBankQuestionVOPage;
+    }
+
+    /**
+     * 批量添加题目到题库
+     *
+     * @param questionIds
+     * @param questionBankId
+     * @param loginUser
+     */
+    @Override
+    public void batchAddQuestionsToBank(List<Long> questionIds, long questionBankId, User loginUser) {
+        ThrowUtils.throwIf(CollUtil.isEmpty(questionIds), ErrorCode.PARAMS_ERROR, "题目列表为空");
+        ThrowUtils.throwIf(questionBankId <= 0, ErrorCode.PARAMS_ERROR, "题库名不正确");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录");
+
+        List<Question> questionList = questionService.listByIds(questionIds);
+        List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
+        ThrowUtils.throwIf(CollUtil.isEmpty(questionIdList), ErrorCode.PARAMS_ERROR);
+        QuestionBank questionBank = questionBankService.getById(questionBankId);
+        ThrowUtils.throwIf(questionBank == null, ErrorCode.PARAMS_ERROR);
+        for (long questionId : questionIdList) {
+            QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
+            questionBankQuestion.setQuestionBankId(questionBankId);
+            questionBankQuestion.setQuestionId(questionId);
+            questionBankQuestion.setUserId(loginUser.getId());
+            boolean result = this.save(questionBankQuestion);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        }
+
+    }
+
+    /**
+     *
+     * @param questionIds
+     * @param questionBankId
+     */
+    @Override
+    public void batchRemoveQuestionsFromBank(List<Long> questionIds, long questionBankId) {
+        ThrowUtils.throwIf(CollUtil.isEmpty(questionIds), ErrorCode.PARAMS_ERROR, "题目列表为空");
+        ThrowUtils.throwIf(questionBankId <= 0, ErrorCode.PARAMS_ERROR, "题库名不正确");
+
+        List<Question> questionList = questionService.listByIds(questionIds);
+        List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
+        QuestionBank questionBank = questionBankService.getById(questionBankId);
+        for (long questionId : questionIdList) {
+            LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                    .eq(QuestionBankQuestion::getQuestionBankId, questionId)
+                    .eq(QuestionBankQuestion::getQuestionId, questionId);
+            boolean result = this.remove(lambdaQueryWrapper);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR,"题目移除失败");
+
+        }
     }
 
 }

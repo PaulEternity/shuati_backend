@@ -315,4 +315,18 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         return page;
     }
 
+    @Override
+    public void BatchDeleteQuestion(List<Long> questionIdList) {
+        ThrowUtils.throwIf(CollUtil.isEmpty(questionIdList),ErrorCode.PARAMS_ERROR);
+        for(Long questionId : questionIdList){
+            boolean result = this.removeById(questionId);
+            ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR,"题目删除失败");
+            //移除题目题库关系
+            LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                    .eq(QuestionBankQuestion::getQuestionId, questionId);
+            result = questionBankQuestionService.remove(lambdaQueryWrapper);
+            ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR,"从题库删除题目失败");
+        }
+    }
+
 }

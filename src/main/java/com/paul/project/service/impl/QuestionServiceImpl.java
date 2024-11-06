@@ -37,6 +37,7 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
@@ -69,7 +70,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private QuestionBankQuestionService questionBankQuestionService;
 
     @Resource
-    private ElasticsearchTemplate elasticsearchTemplate;
+    private ElasticsearchRestTemplate elasticsearchRestTemplate;
 
     /**
      * 校验数据
@@ -189,9 +190,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             return questionVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<QuestionVO> questionVOList = questionList.stream().map(question -> {
-            return QuestionVO.objToVo(question);
-        }).collect(Collectors.toList());
+        List<QuestionVO> questionVOList = questionList.stream().map(QuestionVO::objToVo).collect(Collectors.toList());
 
         // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
@@ -235,6 +234,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             if (CollUtil.isNotEmpty(questionList)) {
                 Set<Long> questionIdSet = questionList.stream().map(QuestionBankQuestion::getQuestionId).collect(Collectors.toSet());
                 queryWrapper.in("id", questionIdSet);// in可以走索引
+            }else{
+                return new Page<>(current, size,0);
             }
         }
         return this.page(new Page<>(current, size), queryWrapper);
@@ -300,7 +301,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 .withPageable(pageRequest)
                 .withSorts(sortedBuilder)
                 .build();
-        SearchHits<QuestionEsDTO> searchHits = elasticsearchTemplate.search(searchQuery, QuestionEsDTO.class);
+        SearchHits<QuestionEsDTO> searchHits = elasticsearchRestTemplate.search(searchQuery, QuestionEsDTO.class);
         Page<Question> page = new Page<>();
         page.setTotal(searchHits.getTotalHits());
         List<Question> resourceList = new ArrayList<>();

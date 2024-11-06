@@ -49,9 +49,6 @@ public class QuestionController {
     private QuestionService questionService;
 
     @Resource
-    private QuestionBankQuestionService questionBankQuestionService;
-
-    @Resource
     private UserService userService;
 
     // region 增删改查
@@ -276,7 +273,6 @@ public class QuestionController {
         ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
         Page<Question> questionPage = questionService.searchFromEs(questionQueryRequest);
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
-
     }
 
     // endregion

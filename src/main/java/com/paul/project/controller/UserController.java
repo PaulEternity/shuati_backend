@@ -1,5 +1,6 @@
 package com.paul.project.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
@@ -7,6 +8,7 @@ import com.paul.project.common.BaseResponse;
 import com.paul.project.common.DeleteRequest;
 import com.paul.project.common.ErrorCode;
 import com.paul.project.common.ResultUtils;
+import com.paul.project.constant.UserConstant;
 import com.paul.project.model.dto.user.*;
 import com.paul.project.model.entity.User;
 import com.paul.project.service.UserService;
@@ -139,6 +141,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/delete")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -155,6 +158,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/update")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -173,6 +177,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<UserVO> getUserById(int id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

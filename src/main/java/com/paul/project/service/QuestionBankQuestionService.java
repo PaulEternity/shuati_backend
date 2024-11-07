@@ -7,6 +7,7 @@ import com.paul.project.model.dto.questionBankQuestion.QuestionBankQuestionQuery
 import com.paul.project.model.entity.QuestionBankQuestion;
 import com.paul.project.model.entity.User;
 import com.paul.project.model.vo.QuestionBankQuestionVO;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -66,4 +67,11 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
      * @param questionBankId
      */
     void batchRemoveQuestionsFromBank(List<Long> questionIds, long questionBankId);
+
+    /**
+     * 批量添加 内部方法
+     * @param questionBankQuestionList
+     */
+    @Transactional(rollbackFor = Exception.class)
+    void batchAddQuestionsToBankInner(List<QuestionBankQuestion> questionBankQuestionList);
 }

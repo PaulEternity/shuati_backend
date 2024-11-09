@@ -211,8 +211,19 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
 //        List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
         //检查哪些题目还不存在，避免重复插入
         LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
-                .eq(QuestionBankQuestion::getQuestionBankId, questionBankId)
+                .ne(QuestionBankQuestion::getQuestionBankId, questionBankId)
                 .notIn(QuestionBankQuestion::getQuestionId, questionIdList);
+        List<QuestionBankQuestion> existQuestionList = this.list(lambdaQueryWrapper);
+        //已存在在题库中的题目ID
+        Set<Long> existQuestionIdSet = existQuestionList.stream()
+                .map(QuestionBankQuestion::getQuestionId)
+                .collect(Collectors.toSet());
+
+        //把已存在的id排除掉
+        questionIdList = questionIdList.stream().filter(questionId -> {
+            return !existQuestionIdSet.contains(questionId);
+        }).collect(Collectors.toList());
+
         //最后得出的题目是没有插入过的题目
         List<QuestionBankQuestion> notExistQuestionList = this.list(lambdaQueryWrapper);
         questionIdList = notExistQuestionList.stream().map(QuestionBankQuestion::getId).collect(Collectors.toList());
@@ -286,7 +297,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl
             log.error("添加题目至题库时发生未知错误，错误信息:{}", e.getMessage());
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "添加失败");
         }
-
     }
 
     /**

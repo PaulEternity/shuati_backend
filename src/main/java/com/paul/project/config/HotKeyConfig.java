@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@Data
 @ConfigurationProperties(prefix = "hotkey")
+@Data
 public class HotKeyConfig {
 
     /**
@@ -44,5 +44,4 @@ public class HotKeyConfig {
                 .build();
         starter.startPipeline();
     }
-
 }

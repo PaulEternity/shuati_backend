@@ -2,6 +2,7 @@ package com.paul.project.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
 import com.paul.project.annotation.AuthCheck;
 import com.paul.project.common.BaseResponse;
 import com.paul.project.common.DeleteRequest;
@@ -26,6 +27,7 @@ import com.paul.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import springfox.documentation.annotations.Cacheable;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -144,6 +146,16 @@ public class QuestionBankController {
         ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
         Long id = questionBankQueryRequest.getId();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+
+        String key = "bank_detail_" + id;
+        //如果是热key，从本地缓存中获取缓存值
+        if(JdHotKeyStore.isHotKey(key)){
+            Object cachedQuestionBankVO = JdHotKeyStore.get(key);
+            if(cachedQuestionBankVO != null){
+                return ResultUtils.success((QuestionBankVO)cachedQuestionBankVO);
+            }
+        }
+
         // 查询数据库
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
@@ -156,7 +168,11 @@ public class QuestionBankController {
             Page<QuestionVO> questionVOPage = questionService.getQuestionVOPage(questionPage,request);
             questionBankVO.setQuestionPage(questionVOPage);
         }
-        return ResultUtils.success(questionBankService.getQuestionBankVO(questionBank, request));
+
+        //设置本地缓存(如果不是热key，就不会执行）
+        JdHotKeyStore.smartSet(key,questionBankVO);
+
+        return ResultUtils.success(questionBankVO);
     }
 
     /**

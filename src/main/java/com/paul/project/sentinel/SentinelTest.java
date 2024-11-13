@@ -1,4 +1,4 @@
-package com.paul.project.Sentinel;
+package com.paul.project.sentinel;
 
 import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.SphU;

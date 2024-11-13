@@ -1,6 +1,8 @@
 package com.paul.project.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,10 +14,12 @@ import com.paul.project.common.ResultUtils;
 import com.paul.project.constant.UserConstant;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.exception.ThrowUtils;
+import com.paul.project.model.dto.questionBank.QuestionBankQueryRequest;
 import com.paul.project.model.dto.questionBankQuestion.*;
 import com.paul.project.model.entity.QuestionBankQuestion;
 import com.paul.project.model.entity.User;
 import com.paul.project.model.vo.QuestionBankQuestionVO;
+import com.paul.project.model.vo.QuestionBankVO;
 import com.paul.project.service.QuestionBankQuestionService;
 import com.paul.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -206,6 +210,7 @@ public class QuestionBankQuestionController {
 
     /**
      * 移除题目题库关联
+     *
      * @param questionBankQuestionRemoveRequest
      * @return boolean
      */
@@ -223,6 +228,7 @@ public class QuestionBankQuestionController {
 
     /**
      * 批量添加题目至题库（仅管理员可用）
+     *
      * @param questionBankQuestionBatchAddRequest
      * @param request
      * @return
@@ -234,12 +240,13 @@ public class QuestionBankQuestionController {
         User loginUser = userService.getLoginUser(request);
         Long questionBankId = questionBankQuestionBatchAddRequest.getQuestionBankId();
         List<Long> questionIdList = questionBankQuestionBatchAddRequest.getQuestionList();
-        questionBankQuestionService.batchAddQuestionsToBank(questionIdList,questionBankId,loginUser);
+        questionBankQuestionService.batchAddQuestionsToBank(questionIdList, questionBankId, loginUser);
         return ResultUtils.success(true);
     }
 
     /**
      * 批量移除题目（仅管理员可用）
+     *
      * @param questionBankQuestionBatchRemoveRequest
      * @param request
      * @return
@@ -251,7 +258,7 @@ public class QuestionBankQuestionController {
         User loginUser = userService.getLoginUser(request);
         Long questionBankId = questionBankQuestionBatchRemoveRequest.getQuestionBankId();
         List<Long> questionIdList = questionBankQuestionBatchRemoveRequest.getQuestionList();
-        questionBankQuestionService.batchRemoveQuestionsFromBank(questionIdList,questionBankId);
+        questionBankQuestionService.batchRemoveQuestionsFromBank(questionIdList, questionBankId);
         return ResultUtils.success(true);
     }
 

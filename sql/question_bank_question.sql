@@ -9,4 +9,16 @@ create table if not exists question_bank_question
     createTime     datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime     datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     UNIQUE (questionBankId, questionId)
-    ) comment '题库题目' collate = utf8mb4_unicode_ci;
+) comment '题库题目' collate = utf8mb4_unicode_ci;
+
+
+INSERT INTO question_bank_question (questionBankId, questionId, userId, createTime)
+VALUES (1, 1, 1, CURRENT_TIMESTAMP),
+       (1, 2, 1, CURRENT_TIMESTAMP),
+       (2, 3, 2, CURRENT_TIMESTAMP),
+       (2, 4, 2, CURRENT_TIMESTAMP),
+       (3, 5, 3, CURRENT_TIMESTAMP),
+       (4, 6, 4, CURRENT_TIMESTAMP),
+       (5, 7, 5, CURRENT_TIMESTAMP),
+       (6, 8, 6, CURRENT_TIMESTAMP),
+       (7, 9, 7, CURRENT_TIMESTAMP);

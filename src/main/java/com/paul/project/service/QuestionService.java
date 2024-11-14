@@ -71,4 +71,9 @@ public interface QuestionService extends IService<Question> {
      */
     void BatchDeleteQuestion(List<Long> questionIdList);
 
+    /**
+     * 反爬
+     * @param loginUserId
+     */
+     void crawlerDetect(long loginUserId);
 }

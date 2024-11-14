@@ -1,6 +1,7 @@
 package com.paul.project.service.impl;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -12,7 +13,9 @@ import com.paul.project.common.ErrorCode;
 import com.paul.project.common.ResultUtils;
 import com.paul.project.constant.CommonConstant;
 import com.paul.project.constant.UserConstant;
+import com.paul.project.exception.BusinessException;
 import com.paul.project.exception.ThrowUtils;
+import com.paul.project.manager.CounterManager;
 import com.paul.project.mapper.QuestionMapper;
 import com.paul.project.model.dto.question.QuestionEsDTO;
 import com.paul.project.model.dto.question.QuestionQueryRequest;
@@ -52,6 +55,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +75,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
+
+    @Resource
+    private CounterManager counterManager;
 
     /**
      * 校验数据
@@ -327,6 +334,31 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             result = questionBankQuestionService.remove(lambdaQueryWrapper);
             ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR,"从题库删除题目失败");
         }
+    }
+
+    @Override
+    public void crawlerDetect(long loginUserId){
+
+        final int WARN_COUNT = 10;
+
+        final int BAN_COUNT = 20;
+
+        String key = String.format("user:access:%s", loginUserId);
+
+        long count = counterManager.incrAndGetCounter(key, 1, TimeUnit.MINUTES, 180);
+
+        if(count > BAN_COUNT){
+            StpUtil.kickout(loginUserId);
+            User upateUser = new User();
+            upateUser.setId(loginUserId);
+            upateUser.setUserRole("ban");
+            userService.updateById(upateUser);
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"访问次数过多，已封号");
+        }
+        if(count == WARN_COUNT){
+            throw new BusinessException(110,"警告:访问过于频繁");
+        }
+
     }
 
 }

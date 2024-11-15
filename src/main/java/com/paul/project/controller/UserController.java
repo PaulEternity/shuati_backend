@@ -252,8 +252,6 @@ public class UserController {
         Long userId = loginUser.getId();
         boolean hasSignIn = userService.addUserSignIn(userId);
         return ResultUtils.success(hasSignIn);
-
-
     }
 
     @GetMapping("/get/sign_in")

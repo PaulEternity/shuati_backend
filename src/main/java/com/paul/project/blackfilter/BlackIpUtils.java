@@ -27,6 +27,7 @@ public class BlackIpUtils {
         Yaml yaml = new Yaml();
         Map map = yaml.loadAs(configInfo, Map.class);
         List<String> blackIps = (List<String>) map.get("blackIps");
+        //用布隆过滤器过滤掉黑名单的访问
         if(CollUtil.isNotEmpty(blackIps)){
             BitMapBloomFilter bitMapBloomFilter = new BitMapBloomFilter(958506);
             for (String blackIp : blackIps) {

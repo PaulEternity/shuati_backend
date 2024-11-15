@@ -22,7 +22,7 @@ public class DeviceUtils {
         ThrowUtils.throwIf(userAgent == null, ErrorCode.OPERATION_ERROR);
         String defaultDevice = "pc";
         // 默认值是 PC
-        String device = "pc";
+        String device = defaultDevice;
         // 是否为小程序
         if (isMiniProgram(requestHeader)) {
             device = "miniProgram";

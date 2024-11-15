@@ -11,6 +11,7 @@ import java.io.IOException;
 /**
  * 全局IP黑名单过滤
  */
+//这个注解就会自动生效判断IP
 @WebFilter(urlPatterns = "/*",filterName = "blackFilter")
 public class BlackIpFilter implements Filter {
 

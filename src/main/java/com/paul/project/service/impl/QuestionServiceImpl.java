@@ -88,16 +88,13 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public void validQuestion(Question question, boolean add) {
         ThrowUtils.throwIf(question == null, ErrorCode.PARAMS_ERROR);
-        // todo 从对象中取值
         String title = question.getTitle();
         String content = question.getContent();
         // 创建数据时，参数不能为空
         if (add) {
-            // todo 补充校验规则
             ThrowUtils.throwIf(StringUtils.isBlank(title), ErrorCode.PARAMS_ERROR);
         }
         // 修改数据时，有参数则校验
-        // todo 补充校验规则
         if (StringUtils.isNotBlank(title)) {
             ThrowUtils.throwIf(title.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
         }
@@ -118,7 +115,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         if (questionQueryRequest == null) {
             return queryWrapper;
         }
-        // todo 从对象中取值
         Long id = questionQueryRequest.getId();
         Long notId = questionQueryRequest.getNotId();
         String title = questionQueryRequest.getTitle();
@@ -129,7 +125,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         List<String> tagList = questionQueryRequest.getTags();
         Long userId = questionQueryRequest.getUserId();
         String answer = questionQueryRequest.getAnswer();
-        // todo 补充需要的查询条件
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -168,7 +163,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         // 对象转封装类
         QuestionVO questionVO = QuestionVO.objToVo(question);
 
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
         // 1. 关联查询用户信息
         Long userId = question.getUserId();
@@ -199,7 +193,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         // 对象列表 => 封装对象列表
         List<QuestionVO> questionVOList = questionList.stream().map(QuestionVO::objToVo).collect(Collectors.toList());
 
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
         // 1. 关联查询用户信息
         Set<Long> userIdSet = questionList.stream().map(Question::getUserId).collect(Collectors.toSet());
@@ -241,8 +234,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             if (CollUtil.isNotEmpty(questionList)) {
                 Set<Long> questionIdSet = questionList.stream().map(QuestionBankQuestion::getQuestionId).collect(Collectors.toSet());
                 queryWrapper.in("id", questionIdSet);// in可以走索引
-            }else{
-                return new Page<>(current, size,0);
+            } else {
+                return new Page<>(current, size, 0);
             }
         }
         return this.page(new Page<>(current, size), queryWrapper);
@@ -250,6 +243,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     /**
      * ES 查询题目
+     *
      * @param questionQueryRequest
      * @return
      */
@@ -267,35 +261,37 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         String sortOrder = questionQueryRequest.getSortOrder();
         //布尔查询
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-        boolQueryBuilder.filter(QueryBuilders.termQuery("isDeleted",0));
-        if(id != null){
+        //过滤被删除的题目
+        boolQueryBuilder.filter(QueryBuilders.termQuery("isDeleted", 0));
+        if (id != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
         }
-        if(notId != null){
+        if (notId != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("notId", notId));
         }
-        if(userId != null){
+        if (userId != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("userId", userId));
         }
-        if(questionBankId != null){
+        if (questionBankId != null) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("questionBankId", questionBankId));
         }
 
-        if(CollUtil.isNotEmpty(tagList)){
+        if (CollUtil.isNotEmpty(tagList)) {
             for (String tag : tagList) {
                 boolQueryBuilder.filter(QueryBuilders.termQuery("tags", tag));
             }
         }
 
-        if(StringUtils.isNotBlank(text)){
-            boolQueryBuilder.should(QueryBuilders.matchQuery("title",text));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("content",text));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("answer",text));
+        //should 这其中的条件有一个满足就可以了
+        if (StringUtils.isNotBlank(text)) {
+            boolQueryBuilder.should(QueryBuilders.matchQuery("title", text));
+            boolQueryBuilder.should(QueryBuilders.matchQuery("content", text));
+            boolQueryBuilder.should(QueryBuilders.matchQuery("answer", text));
             boolQueryBuilder.minimumShouldMatch(1);//至少满足一项
         }
 
         SortBuilder<?> sortedBuilder = SortBuilders.scoreSort();
-        if(StringUtils.isNotBlank(sortField)){
+        if (StringUtils.isNotBlank(sortField)) {
             sortedBuilder = SortBuilders.fieldSort(sortField);
             sortedBuilder.order(CommonConstant.SORT_ORDER_ASC.equals(sortOrder) ? SortOrder.ASC : SortOrder.DESC);
         }
@@ -312,9 +308,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         Page<Question> page = new Page<>();
         page.setTotal(searchHits.getTotalHits());
         List<Question> resourceList = new ArrayList<>();
-        if(searchHits.hasSearchHits()){
+        if (searchHits.hasSearchHits()) {
             List<SearchHit<QuestionEsDTO>> searchHitList = searchHits.getSearchHits();
-            for(SearchHit<QuestionEsDTO> searchHit : searchHitList){
+            for (SearchHit<QuestionEsDTO> searchHit : searchHitList) {
                 resourceList.add(QuestionEsDTO.dtoToObj(searchHit.getContent()));
             }
         }
@@ -324,20 +320,20 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public void BatchDeleteQuestion(List<Long> questionIdList) {
-        ThrowUtils.throwIf(CollUtil.isEmpty(questionIdList),ErrorCode.PARAMS_ERROR);
-        for(Long questionId : questionIdList){
+        ThrowUtils.throwIf(CollUtil.isEmpty(questionIdList), ErrorCode.PARAMS_ERROR);
+        for (Long questionId : questionIdList) {
             boolean result = this.removeById(questionId);
-            ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR,"题目删除失败");
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "题目删除失败");
             //移除题目题库关系
             LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
                     .eq(QuestionBankQuestion::getQuestionId, questionId);
             result = questionBankQuestionService.remove(lambdaQueryWrapper);
-            ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR,"从题库删除题目失败");
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "从题库删除题目失败");
         }
     }
 
     @Override
-    public void crawlerDetect(long loginUserId){
+    public void crawlerDetect(long loginUserId) {
 
         final int WARN_COUNT = 10;
 
@@ -347,16 +343,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         long count = counterManager.incrAndGetCounter(key, 1, TimeUnit.MINUTES, 180);
 
-        if(count > BAN_COUNT){
+        if (count > BAN_COUNT) {
             StpUtil.kickout(loginUserId);
             User upateUser = new User();
             upateUser.setId(loginUserId);
             upateUser.setUserRole("ban");
             userService.updateById(upateUser);
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"访问次数过多，已封号");
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "访问次数过多，已封号");
         }
-        if(count == WARN_COUNT){
-            throw new BusinessException(110,"警告:访问过于频繁");
+        if (count == WARN_COUNT) {
+            throw new BusinessException(110, "警告:访问过于频繁");
         }
 
     }

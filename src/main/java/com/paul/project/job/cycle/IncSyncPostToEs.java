@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//增量同步
 @Component
 @Slf4j
 public class IncSyncPostToEs {
@@ -30,17 +31,20 @@ public class IncSyncPostToEs {
     public void run() {
         long FIVE_MINUTES = 5 * 60 * 1000L;
         Date fiveMinutesAgoDate = new Date(new Date().getTime() - FIVE_MINUTES);
+        //获取最近更新的数据
         List<Question> questionList = questionMapper.listQuestionWithDelete(fiveMinutesAgoDate);
         if (CollUtil.isEmpty(questionList)) {
             log.info("no inc question");
             return;
         }
+        //转换成DTO类型
         List<QuestionEsDTO> questionEsDTOS = questionList.stream()
                 .map(QuestionEsDTO::objToDto)
                 .collect(Collectors.toList());
         final int pageSize = 500;
         int total = questionEsDTOS.size();
         log.info("total " + total);
+        //分页同步到es 每批次最多500条
         for (int i = 0; i < total; i += pageSize) {
             int end = Math.min(i + pageSize, total);
             log.info("sync from {} to {}", i, end);

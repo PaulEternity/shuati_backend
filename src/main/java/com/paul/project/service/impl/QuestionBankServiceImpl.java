@@ -50,18 +50,15 @@ public class QuestionBankServiceImpl extends ServiceImpl
     @Override
     public void validQuestionBank(QuestionBank questionBank, boolean add) {
         ThrowUtils.throwIf(questionBank == null, ErrorCode.PARAMS_ERROR);
-//// todo 从对象中取值
-//String title = questionBank.getTitle();
-//// 创建数据时，参数不能为空
-//if (add) {
-//// todo 补充校验规则
-//ThrowUtils.throwIf(StringUtils.isBlank(title), ErrorCode.PARAMS_ERROR);
-//}
-//// 修改数据时，有参数则校验
-//// todo 补充校验规则
-//if (StringUtils.isNotBlank(title)) {
-//ThrowUtils.throwIf(title.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
-//}
+        String title = questionBank.getTitle();
+        // 创建数据时，参数不能为空
+        if (add) {
+            ThrowUtils.throwIf(StringUtils.isBlank(title), ErrorCode.PARAMS_ERROR);
+        }
+        // 修改数据时，有参数则校验
+        if (StringUtils.isNotBlank(title)) {
+            ThrowUtils.throwIf(title.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
+        }
     }
 
     /**
@@ -76,7 +73,6 @@ public class QuestionBankServiceImpl extends ServiceImpl
         if (questionBankQueryRequest == null) {
             return queryWrapper;
         }
-// todo 从对象中取值
         Long id = questionBankQueryRequest.getId();
         Long notId = questionBankQueryRequest.getNotId();
         String title = questionBankQueryRequest.getTitle();
@@ -86,7 +82,6 @@ public class QuestionBankServiceImpl extends ServiceImpl
         Long userId = questionBankQueryRequest.getUserId();
         String description = questionBankQueryRequest.getDescription();
         String picture = questionBankQueryRequest.getPicture();
-        // todo 补充需要的查询条件
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -119,7 +114,6 @@ public class QuestionBankServiceImpl extends ServiceImpl
         // 对象转封装类
         QuestionBankVO questionBankVO = QuestionBankVO.objToVo(questionBank);
 
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
         // 1. 关联查询用户信息
         Long userId = questionBank.getUserId();
@@ -156,7 +150,6 @@ public class QuestionBankServiceImpl extends ServiceImpl
             return QuestionBankVO.objToVo(questionBank);
         }).collect(Collectors.toList());
 
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
         // region 可选
         // 1. 关联查询用户信息
         Set<Long> userIdSet = questionBankList.stream().map(QuestionBank::getUserId).collect(Collectors.toSet());

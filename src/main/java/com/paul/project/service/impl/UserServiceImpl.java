@@ -29,7 +29,6 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
-import java.time.Year;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +54,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * 盐值，混淆密码
      */
-    private static final String SALT = "paul";
+    public static final String SALT = "paul";
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -96,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -124,7 +123,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //Sa-Token登录，指定设备，同端登录互斥
         StpUtil.login(user.getId(), DeviceUtils.getRequestDevice(request));
         StpUtil.getSession().set(USER_LOGIN_STATE,user);
-        return user;
+        return this.getLoginUserVO(user);
     }
 
     /**
@@ -154,6 +153,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         return currentUser;
     }
+
+    /**
+     * 获取当前登录用户（允许未登录）
+     *
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUserPermitNull(HttpServletRequest request) {
+        // 先判断是否已登录（基于 Sa-Token 实现）
+        Object loginUserId = StpUtil.getLoginIdDefaultNull();
+        if (loginUserId == null) {
+            return null;
+        }
+//        // 先判断是否已登录
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        User currentUser = (User) userObj;
+//        if (currentUser == null || currentUser.getId() == null) {
+//            return null;
+//        }
+        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+//        long userId = currentUser.getId();
+        return this.getById((String) loginUserId);
+    }
+
 
     /**
      * 是否为管理员
@@ -205,7 +229,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public UserVO getUserVO(User user) {
         if (user == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+            return null;
         }
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
@@ -215,7 +239,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public List<UserVO> getUserVO(List<User> userList) {
         if (CollUtil.isEmpty(userList)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+            return new ArrayList<>();
         }
         return userList.stream().map(this::getUserVO).collect(Collectors.toList());
     }
@@ -229,7 +253,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 //        String unionId = userQueryRequest.getUnionId();
 //        String mpOpenId = userQueryRequest.getMpOpenId();
         String userName = userQueryRequest.getUserName();
-//        String userProfile = userQueryRequest.getUserProfile();
+        String userProfile = userQueryRequest.getUserProfile();
         String userRole = userQueryRequest.getUserRole();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
@@ -238,13 +262,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 //        queryWrapper.eq(StringUtils.isNotBlank(unionId), "unionId", unionId);
 //        queryWrapper.eq(StringUtils.isNotBlank(mpOpenId), "mpOpenId", mpOpenId);
         queryWrapper.eq(StringUtils.isNotBlank(userRole), "userRole", userRole);
-//        queryWrapper.like(StringUtils.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.like(StringUtils.isNotBlank(userProfile), "userProfile", userProfile);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
     }
 
+    /**
+     * 添加签到记录
+     * @param userId 用户 id
+     * @return
+     */
     @Override
     public boolean addUserSignIn(long userId) {
         LocalDate date = LocalDate.now();
@@ -258,6 +287,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return true;
     }
 
+    /**
+     * 获取签到记录
+     * @param userId 用户 id
+     * @param year   年份（为空表示当前年份）
+     * @return
+     */
     @Override
     public List<Integer> getUserSignInRecord(long userId, Integer year) {
         if (year == null) {

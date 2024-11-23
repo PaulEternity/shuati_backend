@@ -43,7 +43,7 @@ public class IncSyncPostToEs {
                 .collect(Collectors.toList());
         final int pageSize = 500;
         int total = questionEsDTOS.size();
-        log.info("total " + total);
+        log.info("total" + total);
         //分页同步到es 每批次最多500条
         for (int i = 0; i < total; i += pageSize) {
             int end = Math.min(i + pageSize, total);

@@ -1,4 +1,7 @@
-use shuati;
+
+-- 创建库
+create database if not exists juanshua;
+use juanshua;
 -- 题库题目表（硬删除）
 create table if not exists question_bank_question
 (

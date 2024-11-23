@@ -158,7 +158,9 @@ public class QuestionController {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         //检测爬虫
         User user = userService.getLoginUser(request);
-        questionService.crawlerDetect(user.getId());
+        if(user != null){
+            questionService.crawlerDetect(user.getId());
+        }
         // 查询数据库
         Question question = questionService.getById(id);
         ThrowUtils.throwIf(question == null, ErrorCode.NOT_FOUND_ERROR);
@@ -175,9 +177,7 @@ public class QuestionController {
     @PostMapping("/list/page")
     @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
-        if (questionQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
+        ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
         Page<Question> questionByPage = questionService.listQuestionByPage(questionQueryRequest);
         return ResultUtils.success(questionByPage);
     }
@@ -192,13 +192,15 @@ public class QuestionController {
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
                                                                HttpServletRequest request) {
+        ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         // 查询数据库
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+//        Page<Question> questionPage = questionService.page(new Page<>(current, size),
+//                questionService.getQueryWrapper(questionQueryRequest));
+        Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
         // 获取封装类
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
     }
@@ -213,6 +215,7 @@ public class QuestionController {
     @PostMapping("/list/page/vo/sentinel")
     public BaseResponse<Page<QuestionVO>> listQuestionVOByPageSentinel(@RequestBody QuestionQueryRequest questionQueryRequest,
                                                                        HttpServletRequest request) {
+        ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
@@ -347,7 +350,6 @@ public class QuestionController {
         ThrowUtils.throwIf(questionBatchDeleteRequest == null, ErrorCode.PARAMS_ERROR);
         questionService.BatchDeleteQuestion(questionBatchDeleteRequest.getQuestionIdList());
         return ResultUtils.success(true);
-
     }
 
     // endregion

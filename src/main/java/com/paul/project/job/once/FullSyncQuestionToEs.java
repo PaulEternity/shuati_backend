@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 //全量同步
-//@Component
+@Component
 @Slf4j
 public class FullSyncQuestionToEs implements CommandLineRunner {
 

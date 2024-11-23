@@ -3,25 +3,29 @@ package com.paul.project.controller;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.paul.project.common.BaseResponse;
 import com.paul.project.common.DeleteRequest;
 import com.paul.project.common.ErrorCode;
 import com.paul.project.common.ResultUtils;
 import com.paul.project.constant.UserConstant;
+import com.paul.project.exception.ThrowUtils;
 import com.paul.project.model.dto.user.*;
 import com.paul.project.model.entity.User;
+import com.paul.project.model.vo.LoginUserVO;
 import com.paul.project.service.UserService;
 import com.paul.project.exception.BusinessException;
 import com.paul.project.model.vo.UserVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.paul.project.service.impl.UserServiceImpl.SALT;
 
 /**
  * 用户接口
@@ -66,7 +70,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
-    public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -75,8 +79,8 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = userService.userLogin(userAccount, userPassword, request);
-        return ResultUtils.success(user);
+        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
+        return ResultUtils.success(loginUserVO);
     }
 
     /**
@@ -101,11 +105,9 @@ public class UserController {
      * @return
      */
     @GetMapping("/get/login")
-    public BaseResponse<UserVO> getLoginUser(HttpServletRequest request) {
+    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-        UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user, userVO);
-        return ResultUtils.success(userVO);
+        return ResultUtils.success(userService.getLoginUserVO(user));
     }
 
     // endregion
@@ -120,12 +122,16 @@ public class UserController {
      * @return
      */
     @PostMapping("/add")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = new User();
         BeanUtils.copyProperties(userAddRequest, user);
+        String defaultPassword = "12345678";
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + defaultPassword).getBytes());
+        user.setUserPassword(encryptPassword);
         boolean result = userService.save(user);
         if (!result) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR);
@@ -178,14 +184,29 @@ public class UserController {
      */
     @GetMapping("/get")
     @SaCheckRole(UserConstant.ADMIN_ROLE)
-    public BaseResponse<UserVO> getUserById(int id, HttpServletRequest request) {
+    public BaseResponse<User> getUserById(long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.getById(id);
-        UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user, userVO);
-        return ResultUtils.success(userVO);
+        ThrowUtils.throwIf(user == null,ErrorCode.NOT_FOUND_ERROR);
+//        UserVO userVO = new UserVO();
+//        BeanUtils.copyProperties(user, userVO);
+        return ResultUtils.success(user);
+    }
+
+    /**
+     * 根据 id 获取包装类
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @GetMapping("/get/vo")
+    public BaseResponse<UserVO> getUserVOById(long id, HttpServletRequest request) {
+        BaseResponse<User> response = getUserById(id, request);
+        User user = response.getData();
+        return ResultUtils.success(userService.getUserVO(user));
     }
 
     /**
@@ -212,6 +233,29 @@ public class UserController {
     }
 
     /**
+     * 更新个人信息
+     *
+     * @param userUpdateMyRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/update/my")
+    public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest,
+                                              HttpServletRequest request) {
+        if (userUpdateMyRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateMyRequest, user);
+        user.setId(loginUser.getId());
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+
+    /**
      * 分页获取用户列表
      *
      * @param userQueryRequest
@@ -219,24 +263,37 @@ public class UserController {
      * @return
      */
     @GetMapping("/list/page")
-    public BaseResponse<Page<UserVO>> listUserByPage(UserQueryRequest userQueryRequest, HttpServletRequest request) {
-        long current = 1;
-        long size = 10;
-        User userQuery = new User();
-        if (userQueryRequest != null) {
-            BeanUtils.copyProperties(userQueryRequest, userQuery);
-            current = userQueryRequest.getCurrent();
-            size = userQueryRequest.getPageSize();
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<User>> listUserByPage(UserQueryRequest userQueryRequest, HttpServletRequest request) {
+        long current = userQueryRequest.getCurrent();
+        long size = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(new Page<>(current, size),
+                userService.getQueryWrapper(userQueryRequest));
+        return ResultUtils.success(userPage);
+    }
+
+    /**
+     * 分页获取用户封装列表
+     *
+     * @param userQueryRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/list/page/vo")
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest,
+                                                       HttpServletRequest request) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>(userQuery);
-        Page<User> userPage = userService.page(new Page<>(current, size), queryWrapper);
-        Page<UserVO> userVOPage = new PageDTO<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
-        List<UserVO> userVOList = userPage.getRecords().stream().map(user -> {
-            UserVO userVO = new UserVO();
-            BeanUtils.copyProperties(user, userVO);
-            return userVO;
-        }).collect(Collectors.toList());
-        userVOPage.setRecords(userVOList);
+        long current = userQueryRequest.getCurrent();
+        long size = userQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Page<User> userPage = userService.page(new Page<>(current, size),
+                userService.getQueryWrapper(userQueryRequest));
+        Page<UserVO> userVOPage = new Page<>(current, size, userPage.getTotal());
+        List<UserVO> userVO = userService.getUserVO(userPage.getRecords());
+        userVOPage.setRecords(userVO);
         return ResultUtils.success(userVOPage);
     }
 
@@ -254,6 +311,12 @@ public class UserController {
         return ResultUtils.success(hasSignIn);
     }
 
+    /**
+     * 获取签到记录
+     * @param year
+     * @param request
+     * @return
+     */
     @GetMapping("/get/sign_in")
     public BaseResponse<List<Integer>> getUserSignIn(Integer year, HttpServletRequest request) {
         User user = userService.getLoginUser(request);

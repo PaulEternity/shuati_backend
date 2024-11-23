@@ -232,7 +232,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                     .eq(QuestionBankQuestion::getQuestionBankId, questionBankId);
             List<QuestionBankQuestion> questionList = questionBankQuestionService.list(lambdaQueryWrapper);
             if (CollUtil.isNotEmpty(questionList)) {
-                Set<Long> questionIdSet = questionList.stream().map(QuestionBankQuestion::getQuestionId).collect(Collectors.toSet());
+                Set<Long> questionIdSet = questionList.stream()
+                        .map(QuestionBankQuestion::getQuestionId)
+                        .collect(Collectors.toSet());
                 queryWrapper.in("id", questionIdSet);// in可以走索引
             } else {
                 return new Page<>(current, size, 0);
@@ -249,16 +251,17 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
      */
     @Override
     public Page<Question> searchFromEs(QuestionQueryRequest questionQueryRequest) {
-        Long id = questionQueryRequest.getUserId();
+        Long id = questionQueryRequest.getId();
         Long notId = questionQueryRequest.getNotId();
-        Long questionBankId = questionQueryRequest.getQuestionBankId();
-        List<String> tagList = questionQueryRequest.getTags();
-        Long userId = questionQueryRequest.getUserId();
         String text = questionQueryRequest.getSearchText();
+        List<String> tagList = questionQueryRequest.getTags();
+        Long questionBankId = questionQueryRequest.getQuestionBankId();
+        Long userId = questionQueryRequest.getUserId();
         int current = questionQueryRequest.getCurrent() - 1;
         int pageSize = questionQueryRequest.getPageSize();
         String sortField = questionQueryRequest.getSortField();
         String sortOrder = questionQueryRequest.getSortOrder();
+
         //布尔查询
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         //过滤被删除的题目

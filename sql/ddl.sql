@@ -1,8 +1,10 @@
-
-
--- 切换库
-use shuati;
-
+#
+# -- 创建库
+# create database if not exists shuati;
+# -- 切换库
+# use shuati;
+create database if not exists juanshua;
+use juanshua;
 -- 用户表
 create table if not exists user
 (
